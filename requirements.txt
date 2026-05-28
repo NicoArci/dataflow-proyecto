@@ -1,0 +1,21 @@
+# Base de datos
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+pymongo==4.6.1
+
+# ETL y procesamiento
+pandas==2.2.0
+numpy==1.26.3
+python-dotenv==1.0.0
+tqdm==4.66.1
+
+# Machine Learning
+scikit-learn==1.4.0
+
+# Visualización
+matplotlib==3.8.2
+seaborn==0.13.2
+
+# Jupyter
+jupyter==1.0.0
+ipykernel==6.29.0

@@ -1,0 +1,15 @@
+# Dataset (demasiado pesado para el repo)
+data/*.csv
+data/*.zip
+
+# Entorno
+.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Checkpoints de notebooks
+**/.ipynb_checkpoints
+
+# Outputs generados
+docs/*.png
