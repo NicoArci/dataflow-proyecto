@@ -121,21 +121,141 @@ jupyter notebook
             │  Random Forest     │
             │  Clasificación     │
             │  entrega tardía    │
-            │  ACC ~0.78 ROC ~0.83│
+            │  ACC 0.86 AUC 0.83 │
             └────────────────────┘
 ```
 
 ---
 
+## Modelo Entidad-Relación (PostgreSQL)
+
+```
+┌─────────────────────────┐
+│        customers        │
+├─────────────────────────┤
+│ PK  customer_id         │
+│     customer_unique_id  │
+│     zip_code            │
+│     city                │
+│     state               │
+└────────────┬────────────┘
+             │ 1
+             │
+             │ N
+┌────────────▼────────────────────────────────────────────────────┐
+│                            orders                               │
+├─────────────────────────────────────────────────────────────────┤
+│ PK  order_id                                                    │
+│ FK  customer_id                                                 │
+│     order_status                                                │
+│     purchase_timestamp                                          │
+│     approved_at                                                 │
+│     carrier_delivery_timestamp                                  │
+│     customer_delivery_timestamp                                 │
+│     estimated_delivery_date                                     │
+└──────────┬─────────────────────────────────────────┬───────────┘
+           │ 1                                       │ 1
+           │                                         │
+           │ N                                       │ 1
+┌──────────▼──────────────────────┐    ┌─────────────▼───────────┐
+│          order_items            │    │       order_reviews      │
+├─────────────────────────────────┤    ├─────────────────────────┤
+│ PK  (order_id, item_seq)        │    │ PK  review_id            │
+│ FK  order_id                    │    │ FK  order_id             │
+│ FK  product_id                  │    │     review_score         │
+│ FK  seller_id                   │    │     comment_title        │
+│     shipping_limit              │    │     comment_message      │
+│     price                       │    │     creation_date        │
+│     freight_value               │    │     answer_timestamp     │
+└───────┬──────────────┬──────────┘    └─────────────────────────┘
+        │ N            │ N
+        │              │
+        │ 1            │ 1
+┌───────▼──────────┐  ┌▼────────────────────────┐
+│     products     │  │         sellers          │
+├──────────────────┤  ├──────────────────────────┤
+│ PK  product_id   │  │ PK  seller_id            │
+│     category_name│  │     zip_code             │
+│     name_length  │  │     city                 │
+│     desc_length  │  │     state                │
+│     photos_qty   │  └──────────────────────────┘
+│     weight_g     │
+│     length_cm    │
+│     height_cm    │
+│     width_cm     │
+└──────────────────┘
+```
+
+> Diagrama DBML completo (para [dbdiagram.io](https://dbdiagram.io)) en `sql/diagrama_MER.md`.
+
+---
+
 ## Resultados del modelo
+
+Entrenado con 96,470 pedidos (80/20 split estratificado, `random_state=42`).  
+Tasa de retraso en el dataset: **8.1%** — clase desbalanceada compensada con `class_weight='balanced'`.
+
+### Classification Report
+
+```
+              precision    recall  f1-score   support
+
+    A tiempo       0.96      0.89      0.92     17,729
+      Tardío       0.32      0.61      0.42      1,565
+
+    accuracy                           0.86     19,294
+   macro avg       0.64      0.75      0.67     19,294
+weighted avg       0.91      0.86      0.88     19,294
+```
+
+### Métricas clave
 
 | Métrica | Valor |
 |---------|-------|
-| Accuracy | ~0.78 |
-| F1-score | ~0.74 |
-| ROC-AUC | ~0.83 |
+| Accuracy | **0.86** |
+| F1-score (Tardío) | **0.42** |
+| ROC-AUC | **0.8271** |
+| Recall (Tardío) | 0.61 |
+| Precision (Tardío) | 0.32 |
 
-> Los valores exactos se encuentran en `modelo/modelo_predictivo.ipynb`
+### Top 5 features por importancia
+
+| Feature | Importancia |
+|---------|-------------|
+| `review_score` | 0.545 |
+| `dias_prometidos` | 0.136 |
+| `estado_cliente` | 0.063 |
+| `pago_valor` | 0.062 |
+| `volumen_cm3` | 0.055 |
+
+> Reporte completo, curva ROC y matriz de confusión en `modelo/modelo_predictivo.ipynb`.
+
+---
+
+## Capturas del pipeline
+
+### EDA — Análisis Exploratorio
+
+![EDA análisis de entregas](docs/eda_analisis.png)
+
+> Balance de clases, distribución de días prometidos, score de reseñas por clase y tasa de retraso por estado del cliente.
+
+### Evaluación del modelo
+
+![Evaluación del modelo](docs/evaluacion_modelo.png)
+
+> Matriz de confusión, curva ROC (AUC = 0.827) y feature importance top-10.
+
+---
+
+## MongoDB — Colección `pedidos`
+
+| Indicador | Valor |
+|-----------|-------|
+| Total documentos | **96,470** |
+| Pedidos a tiempo | 88,644 (91.9%) |
+| Pedidos tardíos | 7,826 (8.1%) |
+| Estructura | Documentos anidados: `cliente`, `vendedor`, `producto`, `pago`, `entrega`, `reseña` |
 
 ---
 
@@ -168,7 +288,10 @@ dataflow-proyecto/
 │   └── modelo_predictivo.ipynb  # EDA + modelo + métricas
 │
 └── docs/
-    └── arquitectura.md          # decisiones de diseño
+    ├── arquitectura.md          # decisiones de diseño
+    ├── diagrama_MER_ascii.md    # diagrama MER en ASCII
+    ├── eda_analisis.png         # gráficos EDA generados por el notebook
+    └── evaluacion_modelo.png    # matriz de confusión, ROC y feature importance
 ```
 
 ---
